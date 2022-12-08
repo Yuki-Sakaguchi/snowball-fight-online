@@ -52,6 +52,20 @@ https://snowball-fight-online-production.up.railway.app/
   - スプライトで歩くアニメーションを作る
 - スマホ対応
   - スマホでも遊びたい
+  
+## 作り方のメモ
+
+express では HTML や JS などのリソースを返す
+
+![IMG_3472](https://user-images.githubusercontent.com/16290220/206512048-c43141d7-3d22-4cb0-85ee-7b0c7a296f4c.jpg)
+
+
+socket.io でクライアントとサーバーの情報の受け渡しをする
+全ユーザーに共有したいデータをサーバーに持たせて、それをクライアントに送って、クライアントはそのデータをもとに描画する
+
+![IMG_3473](https://user-images.githubusercontent.com/16290220/206512055-d1bd978f-ce44-41e3-8917-2da15eb44820.jpg)
+
+
 
 ## 参考
 https://www.youtube.com/watch?v=4GQCkW23rTU
