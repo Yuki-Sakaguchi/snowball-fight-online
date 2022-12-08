@@ -86,7 +86,7 @@ async function join() {
   client.on("user-unpublished", handleUserUnpublished);
 
   await client.join(options.appid, options.channel, options.token || null, uid);
-  localTracks.audioTrack = AgoraRTC.createMicrophoneAudioTrack();
+  localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
   await client.publish(Object.values(localTracks));
   console.log("publish success");
