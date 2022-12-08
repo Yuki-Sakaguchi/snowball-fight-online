@@ -38,13 +38,13 @@ const muteButton = document.getElementById('mute');
 muteButton.addEventListener('click', () => {
   // if (localTracks.audioTrack.isPlaying) {
   if (isPlaying) {
-    // localTracks.audioTrack.setEnabled(false);
-    localTracks.audioTrack.stop();
+    localTracks.audioTrack.setEnabled(false);
+    // localTracks.audioTrack.stop();
     muteButton.innerText = 'unmute';
     socket.emit('mute', true);
   } else {
-    // localTracks.audioTrack.setEnabled(true);
-    localTracks.audioTrack.play();
+    localTracks.audioTrack.setEnabled(true);
+    // localTracks.audioTrack.play();
     muteButton.innerText = 'mute';
     socket.emit('mute', false);
   }
