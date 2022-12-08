@@ -138,6 +138,7 @@ async function main () {
       id: socket.id,
       x: 1500,
       y: 1000,
+      isMuted: true,
     });
 
     // プレイヤーごとの入力の初期値を設定
@@ -157,6 +158,12 @@ async function main () {
     // 入力を受け取ったら更新
     socket.on('inputs', (inputs) => {
       inputMap[socket.id] = inputs; // ユーザーごとの入力を保存
+    });
+
+    // ユーザーのマイクのON/OFFを受信
+    socket.on('mute', (isMuted) => {
+      const player = players.find((player) => player.id === socket.id);
+      player.isMuted = isMuted;
     });
 
     // 雪玉を投げるアクションを受信

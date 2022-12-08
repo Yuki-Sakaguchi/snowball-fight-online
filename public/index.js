@@ -4,7 +4,14 @@ mapImage.src = '/snowy-sheet.png';
 const santaImage = new Image();
 santaImage.src = '/santa.png';
 
+const microphoneImage = new Image();
+microphoneImage.src = '/microphone.png';
+
+const speakerImage = new Image();
+speakerImage.src = '/speaker.png';
+
 const walkSnow = new Audio('./walk-snow.mp3');
+walkSnow.volume = 0.2;
 
 const canvasEl = document.getElementById('canvas');
 canvasEl.width = window.innerWidth;
@@ -13,11 +20,81 @@ const canvas = canvasEl.getContext('2d');
 
 const socket = io(`ws://localhost:5000`);
 
-const TILE_SIZE = 32; // 動画だと16だったけど画像のサイズ的に合わないので大きめに
+// Agora
+const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+
+const localTracks = {
+  audioTrack: null
+};
+
+let isPlaying = false;
+
+const remoteUsers = {};
+
+const muteButton = document.getElementById('mute');
+muteButton.addEventListener('click', () => {
+  // if (localTracks.audioTrack.isPlaying) {
+  if (isPlaying) {
+    // localTracks.audioTrack.setEnabled(false);
+    localTracks.audioTrack.stop();
+    muteButton.innerText = 'unmute';
+    socket.emit('mute', true);
+  } else {
+    // localTracks.audioTrack.setEnabled(true);
+    localTracks.audioTrack.play();
+    muteButton.innerText = 'mute';
+    socket.emit('mute', false);
+  }
+  isPlaying = !isPlaying;
+});
+
+const options = {
+  appid: 'd565416826f1446192cde4d731b2474f',
+  channel: 'game',
+  uid: null,
+  token: '007eJxTYKhZZNjy4ordk40v9zUk7F8z+fS37C2NLPkVWUoPPs0uujtFgSHF1MzUxNDMwsgszdDExMzQ0ig5JdUkxdzYMMnIxNwkreHOxOSGQEaGDXztrIwMEAjiszCkJ+amMjAAAEqbIjg='
+};
+
+async function subscribe(user, mediaType) {
+  await client.subscribe(user, mediaType);
+  if (mediaType === 'audio') {
+    // user.audioTrack.play();
+    isPlaying = false;
+  }
+  console.log('subscribe');
+}
+
+function handleUserPublished(user, mediaType) {
+  const id = user.uid;
+  remoteUsers[id] = user;
+  subscribe(user, mediaType);
+  console.log('published');
+}
+
+function handleUserUnpublished(user) {
+  const id = user.uid;
+  delete remoteUsers[id];
+  console.log('unpublished', id);
+}
+
+async function join() {
+  client.on("user-published", handleUserPublished);
+  client.on("user-unpublished", handleUserUnpublished);
+  [ options.uid, localTracks.audioTrack ] = await Promise.all([
+    client.join(options.appid, options.channel, options.token || null),
+    AgoraRTC.createMicrophoneAudioTrack(),
+  ]);
+  await client.publish(Object.values(localTracks));
+  console.log("publish success");
+  localTracks.audioTrack.setVolume(400);
+}
+
+join();
+
+const TILE_SIZE = 32;
 const TILES_IN_ROW = 8;
 const SNOWBALL_SIZE = 5;
 
-let myId = null;
 let groundMap = [[]];
 let decalMap = [[]];
 let players = [];
@@ -26,8 +103,7 @@ let snowballs = [];
 // socket接続成功
 socket.on('connect', () => {
   console.log('connected');
-  myId = socket.id;
-  console.log(myId);
+  console.log(socket.id);
 });
 
 // サーバーからmapデータを受信
@@ -147,6 +223,11 @@ function loop () {
   // キャラクターを描画
   for (const player of players) {
     canvas.drawImage(santaImage, player.x - cameraX, player.y - cameraY);
+    if (player.isMuted) {
+      canvas.drawImage(speakerImage, player.x - cameraX + 5, player.y - cameraY - TILE_SIZE);
+    } else {
+      canvas.drawImage(microphoneImage, player.x - cameraX + 5, player.y - cameraY - TILE_SIZE);
+    }
   }
 
   // 雪玉描画
