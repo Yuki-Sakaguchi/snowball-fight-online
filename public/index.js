@@ -18,7 +18,7 @@ canvasEl.width = window.innerWidth;
 canvasEl.height = window.innerHeight;
 const canvas = canvasEl.getContext('2d');
 
-const socket = io(`ws://localhost:5000`);
+const socket = io();
 
 // Agora
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
