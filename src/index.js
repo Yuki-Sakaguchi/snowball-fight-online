@@ -13,10 +13,54 @@ const SPEED = 5;
 const TICK_RATE = 30;
 const SNOWBALL_SPEED = 7;
 const PLAYER_SIZE = 32;
+const TILE_SIZE = 32;
 
 const inputMap = {};
+
 let players = [];
 let snowballs = [];
+let ground2D;
+let decal2D;
+
+/**
+ * 当たり判定
+ * @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
+ */
+function isColliding(rect1, rect2) {
+  return (
+    rect1.x < rect2.x + rect2.w &&
+    rect1.x + rect1.w > rect2.x &&
+    rect1.y < rect2.y + rect2.h &&
+    rect1.h + rect1.y > rect2.y
+  );
+}
+
+/**
+ * キャラクターとマップの当たり判定
+ */
+function isCollidingWithMap(player) {
+  for (let row = 0; row < decal2D.length; row++) {
+    for (let col = 0; col < decal2D[0].length; col++) {
+      const tile = decal2D[row][col];
+      const rect1 = {
+        x: player.x,
+        y: player.y,
+        w: PLAYER_SIZE,
+        h: PLAYER_SIZE
+      };
+      const rect2 = {
+        x: col * TILE_SIZE,
+        y: row * TILE_SIZE,
+        w: TILE_SIZE,
+        h: TILE_SIZE,
+      };
+      if (tile && isColliding(rect1, rect2)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
 
 /**
  * ループで実行される処理
@@ -26,15 +70,31 @@ function tick (delta) {
   // プレイヤーのの位置計算
   for (const player of players) {
     const inputs = inputMap[player.id];
+    const previousY = player.y;
+    const previousX = player.x;
+
+    // 上下
     if (inputs.up) {
       player.y -= SPEED;
     } else if (inputs.down) {
       player.y += SPEED;
     }
+
+    // 当たり判定があれば動かさない
+    if (isCollidingWithMap(player)) {
+      player.y = previousY;
+    }
+
+    // 左右
     if (inputs.left) {
       player.x -= SPEED;
     } else if (inputs.right) {
       player.x += SPEED;
+    }
+
+    // 当たり判定があれば動かさない
+    if (isCollidingWithMap(player)) {
+      player.x = previousX;
     }
   }
 
@@ -66,7 +126,9 @@ function tick (delta) {
  */
 async function main () {
   // サーバー起動時にマップを取得
-  const map2D = await loadMap();
+  const map = await loadMap();
+  ground2D = map.ground2D;
+  decal2D = map.decal2D;
 
   io.on('connect', (socket) => {
     console.log('socket', socket.id);
@@ -74,8 +136,8 @@ async function main () {
     // プレイヤーを追加
     players.push({
       id: socket.id,
-      x: 0,
-      y: 0,
+      x: 1500,
+      y: 1000,
     });
 
     // プレイヤーごとの入力の初期値を設定
@@ -87,7 +149,10 @@ async function main () {
     };
 
     // マップデータをクライアントに送信
-    socket.emit('map', map2D);
+    socket.emit('map', {
+      ground: ground2D,
+      decal: decal2D,
+    });
 
     // 入力を受け取ったら更新
     socket.on('inputs', (inputs) => {

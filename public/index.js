@@ -4,6 +4,8 @@ mapImage.src = '/snowy-sheet.png';
 const santaImage = new Image();
 santaImage.src = '/santa.png';
 
+const walkSnow = new Audio('./walk-snow.mp3');
+
 const canvasEl = document.getElementById('canvas');
 canvasEl.width = window.innerWidth;
 canvasEl.height = window.innerHeight;
@@ -16,7 +18,8 @@ const TILES_IN_ROW = 8;
 const SNOWBALL_SIZE = 5;
 
 let myId = null;
-let map = [[]];
+let groundMap = [[]];
+let decalMap = [[]];
 let players = [];
 let snowballs = [];
 
@@ -29,7 +32,8 @@ socket.on('connect', () => {
 
 // サーバーからmapデータを受信
 socket.on('map', (loadedMap) => {
-  map = loadedMap;
+  groundMap = loadedMap.ground;
+  decalMap = loadedMap.decal;
 });
 
 // サーバーからプレイヤー情報を受信
@@ -42,6 +46,7 @@ socket.on('snowballs', (serverSnowballs) => {
   snowballs = serverSnowballs; 
 });
 
+// 入力を保存する
 const inputs = {
   up: false,
   down: false,
@@ -49,6 +54,7 @@ const inputs = {
   right: false,
 };
 
+// キーを入力したとき
 window.addEventListener('keydown', (e) => {
   if (e.key === 'w') {
     inputs['up'] = true;
@@ -59,9 +65,13 @@ window.addEventListener('keydown', (e) => {
   } else if (e.key === 'd') {
     inputs['right'] = true;
   }
+  if (['a', 's', 'w', 'd'].includes(e.key)) {
+    walkSnow.play();
+  }
   socket.emit('inputs', inputs);
 });
 
+// キーを離したとき
 window.addEventListener('keyup', (e) => {
   if (e.key === 'w') {
     inputs['up'] = false;
@@ -72,32 +82,27 @@ window.addEventListener('keyup', (e) => {
   } else if (e.key === 'd') {
     inputs['right'] = false;
   }
+  if (['a', 's', 'w', 'd'].includes(e.key)) {
+    walkSnow.pause();
+    walkSnow.currentTime = 0;
+  }
   socket.emit('inputs', inputs);
 });
 
+// クリックしたとき
 window.addEventListener('click', (e) => {
   const angle = Math.atan2(e.clientY - canvasEl.height / 2, e.clientX - canvasEl.width / 2);
   socket.emit('snowball', angle);
 });
 
-function loop () {
-  canvas.clearRect(0, 0, canvasEl.width, canvasEl.height);
-
-  // 自キャラを取得
-  const myPlayer = players.find((player) => player.id === socket.id);
-
-  // 自キャラが入ればカメラの位置を自キャラが真ん中に来るように調整する
-  let cameraX = 0;
-  let cameraY = 0;
-  if (myPlayer) {
-    cameraX = parseInt(myPlayer.x - canvasEl.width / 2);
-    cameraY = parseInt(myPlayer.y - canvasEl.height / 2);
-  }
-
+/**
+ * マップを描画する
+ */
+function renderMap(map, cameraX, cameraY) {
   // マップを描画
   for (let row = 0; row < map.length; row++) {
     for (let col = 0; col < map[0].length; col++) {
-      const { id } = map[row][col];
+      const { id } = map[row][col] ?? { id: undefined }; // 存在しなかったら空っぽとして扱う
       const imageRow = parseInt(id / TILES_IN_ROW);
       const imageCol = id % TILES_IN_ROW;
       // drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
@@ -114,6 +119,30 @@ function loop () {
       );
     }
   }
+}
+
+/**
+ * ループ処理
+ */
+function loop () {
+  canvas.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+  // 自キャラを取得
+  const myPlayer = players.find((player) => player.id === socket.id);
+
+  // 自キャラが入ればカメラの位置を自キャラが真ん中に来るように調整する
+  let cameraX = 0;
+  let cameraY = 0;
+  if (myPlayer) {
+    cameraX = parseInt(myPlayer.x - canvasEl.width / 2);
+    cameraY = parseInt(myPlayer.y - canvasEl.height / 2);
+  }
+
+  // マップを描画
+  renderMap(groundMap, cameraX, cameraY);
+
+  // オブジェクトを描画
+  renderMap(decalMap, cameraX, cameraY);
 
   // キャラクターを描画
   for (const player of players) {
