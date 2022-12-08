@@ -7,6 +7,8 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer);
 
+const PORT = process.env.PORT || 5000;
+
 const loadMap = require('./mapLoader');
 
 const SPEED = 5;
@@ -138,6 +140,7 @@ async function main () {
       id: socket.id,
       x: 1500,
       y: 1000,
+      voiceId: Math.floor(Math.random() * 1000000),
       isMuted: true,
     });
 
@@ -166,6 +169,12 @@ async function main () {
       player.isMuted = isMuted;
     });
 
+    // ユーザーの音声用のIDを受信
+    socket.on('voiceId', (voiceId) => {
+      const player = players.find((player) => player.id === socket.id);
+      player.voiceId = voiceId;
+    });
+
     // 雪玉を投げるアクションを受信
     socket.on('snowball', (angle) => {
       const player = players.find((player) => player.id === socket.id);
@@ -186,7 +195,7 @@ async function main () {
 
   app.use(express.static('public'));
 
-  httpServer.listen(5000);
+  httpServer.listen(PORT);
 
   let lastUpdate = Date.now();
   setInterval(() => {

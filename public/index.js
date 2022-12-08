@@ -11,7 +11,7 @@ const speakerImage = new Image();
 speakerImage.src = '/speaker.png';
 
 const walkSnow = new Audio('./walk-snow.mp3');
-walkSnow.volume = 0.2;
+walkSnow.volume = 0.1;
 
 const canvasEl = document.getElementById('canvas');
 canvasEl.width = window.innerWidth;
@@ -29,7 +29,10 @@ const localTracks = {
 
 let isPlaying = false;
 
+const uid = Math.floor(Math.random() * 1000000);
+
 const remoteUsers = {};
+window.remoteUsers = remoteUsers;
 
 const muteButton = document.getElementById('mute');
 muteButton.addEventListener('click', () => {
@@ -51,7 +54,7 @@ muteButton.addEventListener('click', () => {
 const options = {
   appid: 'd565416826f1446192cde4d731b2474f',
   channel: 'game',
-  uid: null,
+  uid,
   token: '007eJxTYKhZZNjy4ordk40v9zUk7F8z+fS37C2NLPkVWUoPPs0uujtFgSHF1MzUxNDMwsgszdDExMzQ0ig5JdUkxdzYMMnIxNwkreHOxOSGQEaGDXztrIwMEAjiszCkJ+amMjAAAEqbIjg='
 };
 
@@ -59,7 +62,6 @@ async function subscribe(user, mediaType) {
   await client.subscribe(user, mediaType);
   if (mediaType === 'audio') {
     // user.audioTrack.play();
-    isPlaying = false;
   }
   console.log('subscribe');
 }
@@ -78,12 +80,14 @@ function handleUserUnpublished(user) {
 }
 
 async function join() {
+  socket.emit('voiceId', uid);
+
   client.on("user-published", handleUserPublished);
   client.on("user-unpublished", handleUserUnpublished);
-  [ options.uid, localTracks.audioTrack ] = await Promise.all([
-    client.join(options.appid, options.channel, options.token || null),
-    AgoraRTC.createMicrophoneAudioTrack(),
-  ]);
+
+  await client.join(options.appid, options.channel, options.token || null, uid);
+  localTracks.audioTrack = AgoraRTC.createMicrophoneAudioTrack();
+
   await client.publish(Object.values(localTracks));
   console.log("publish success");
   localTracks.audioTrack.setVolume(400);
@@ -223,10 +227,16 @@ function loop () {
   // キャラクターを描画
   for (const player of players) {
     canvas.drawImage(santaImage, player.x - cameraX, player.y - cameraY);
-    if (player.isMuted) {
+    if (!player.isMuted) {
       canvas.drawImage(speakerImage, player.x - cameraX + 5, player.y - cameraY - TILE_SIZE);
-    } else {
-      canvas.drawImage(microphoneImage, player.x - cameraX + 5, player.y - cameraY - TILE_SIZE);
+    }
+    // 遠くのユーザーの音声を小さくして、近くのユーザーの音声を大きくする
+    if (player !== myPlayer) {
+      if (remoteUsers[player.voiceId] && remoteUsers[player.voiceId].audioTrack) {
+        const distance = Math.sqrt((player.x - myPlayer.x) ** 2 + (player.y - myPlayer.y) ** 2);
+        const ratio = 1.0 - Math.min(distance / 700, 1);
+        remoteUsers[player.voiceId].audioTrack.setVolume(Math.floor(ratio * 100));
+      }
     }
   }
 
