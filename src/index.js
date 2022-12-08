@@ -141,7 +141,7 @@ async function main () {
       x: 1500,
       y: 1000,
       voiceId: Math.floor(Math.random() * 1000000),
-      isMuted: true,
+      isMuted: false,
     });
 
     // プレイヤーごとの入力の初期値を設定
