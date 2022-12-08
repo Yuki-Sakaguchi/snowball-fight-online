@@ -27,7 +27,7 @@ const localTracks = {
   audioTrack: null
 };
 
-let isPlaying = false;
+let isPlaying = true;
 
 const uid = Math.floor(Math.random() * 1000000);
 
@@ -61,7 +61,7 @@ const options = {
 async function subscribe(user, mediaType) {
   await client.subscribe(user, mediaType);
   if (mediaType === 'audio') {
-    // user.audioTrack.play();
+    user.audioTrack.play();
   }
   console.log('subscribe');
 }
