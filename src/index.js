@@ -28,7 +28,7 @@ let decal2D;
  * 当たり判定
  * @see https://developer.mozilla.org/en-US/docs/Games/Techniques/2D_collision_detection
  */
-function isColliding(rect1, rect2) {
+function isColliding (rect1, rect2) {
   return (
     rect1.x < rect2.x + rect2.w &&
     rect1.x + rect1.w > rect2.x &&
@@ -40,7 +40,7 @@ function isColliding(rect1, rect2) {
 /**
  * キャラクターとマップの当たり判定
  */
-function isCollidingWithMap(player) {
+function isCollidingWithMap (player) {
   for (let row = 0; row < decal2D.length; row++) {
     for (let col = 0; col < decal2D[0].length; col++) {
       const tile = decal2D[row][col];
